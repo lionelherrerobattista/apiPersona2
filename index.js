@@ -1,7 +1,8 @@
 const express = require('express');
+const cors = require('cors');
 const { uuid } = require('uuidv4');
 const { handlerNotFound } = require('./middlewares');
-const cors = require('cors');
+
 
 const PORT = 3000;
 const app = express();
@@ -17,8 +18,8 @@ const personas = [
     {id:4, nombre:"Martín", edad:25 },
 ];
 
-app.use(cors);
 app.use(express.json());
+app.use(cors());
 app.use(logger);
 
 app.get("/", (req, res) => {
