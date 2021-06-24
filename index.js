@@ -1,91 +1,133 @@
+require('dotenv').config();
+require('./mongo');
 const express = require('express');
 const cors = require('cors');
-const { uuid } = require('uuidv4');
 const { handlerNotFound } = require('./middlewares');
+const Persona = require('./models/Persona');
 
 
-const PORT = 3000;
+const PORT = process.env.PORT || 3000;
 const app = express();
-const logger = (req, res, next) => {
-    console.log(`Hay ${personas.length} personas en la lista`);
-    next();
-}
+// const logger = (req, res, next) => {
+//     console.log(`Hay ${personas.length} personas en la lista`);
+//     next();
+// }
 
-const personas = [
-    {id:1, nombre:"Juan", edad:30},
-    {id:2, nombre:"Analía", edad:24},
-    {id:3, nombre:"Daniela", edad:27},
-    {id:4, nombre:"Martín", edad:25 },
-];
+// const personas = [
+//     {id:1, nombre:"Juan", edad:30},
+//     {id:2, nombre:"Analía", edad:24},
+//     {id:3, nombre:"Daniela", edad:27},
+//     {id:4, nombre:"Martín", edad:25 },
+// ];
 
 app.use(express.json());
 app.use(cors());
-app.use(logger);
+// app.use(logger);
 
 app.get("/", (req, res) => {
     res.send("<h1>API PERSONAS</h1>");
 });
 
-app.get("/api/personas", (req, res) => {
-    res.json(personas);
+app.get("/api/personas", (req, res, next) => {
+   Persona.find({}).then((personas) => {
+       res.json(personas);
+   })
+   .catch(err => {
+       next(err);
+   })
 });
 
-app.get("/api/personas/:id", (req, res) => {
+app.get("/api/personas/:id", (req, res, next) => {
     const id = req.params.id;
-    const persona = personas.find((p) => p.id == id);
-    persona ? res.json(persona) : res.status(404).end();
+    Persona.findById(id)
+    .then(persona => {
+        if(persona){
+            res.json(persona); //actua como un return
+        }     
+        res.status(404).end();
+    })
+    .catch(err => {
+        next(err);
+    });
     
 });
 
-app.delete("/api/personas/:id", (req, res) => {
+app.delete("/api/personas/:id", (req, res, next) => {
     const id = req.params.id;
-    const indice = personas.findIndex((p) => p.id == id);
-    if(indice != -1){
-        personas.splice(indice, 1);
-        res.status(204).end();
-    } else {
+
+    Persona.findByIdAndRemove(id)
+    .then(result => {
+        if(result){
+            res.status(204).end();
+        }
         res.status(404).end();
-    }
+    })
+    .catch(err => {
+        next(err);
+    });
 });
 
-app.post('/api/personas', (req, res) => {
+app.post('/api/personas', (req, res, next) => {
     const {nombre, edad} = req.body;
 
     if(nombre && edad) {
-        const newPerson = {
-            id: uuid(),
+        //Construyo una persona
+        const nuevaPersona = new Persona({
             nombre,
             edad
-        }
+        });
 
-        personas.push(newPerson);
-        res.status(201).json(newPerson);
+        nuevaPersona.save()
+        .then(persona => {
+            res.json(persona);
+        })
+        .catch(err => {
+            next(err);
+        })
     } else {
-        res.status(400).end();
+        res.status(400).send({error: "Parametros inválidos"});
     }
-
-    res.status(200).end();
 });
 
-app.put('/api/personas/:id', (req, res) => {
+app.put('/api/personas/:id', (req, res, next) => {
     const id = req.params.id;
-    const data = req.body;
-    const persona = personas.find((p) => p.id == id);
+    const {nombre, edad} = req.body;
+    const infoPersona = {};
 
-    if(persona){
-        for (const key in data) {
-            if (Object.hasOwnProperty.call(persona, key)) {
-                persona[key] = data[key];
-                
-            }
-        }
-        res.status(200).json(persona);
-    } else {
-        res.status(400).end();
+    //Filtrar por si falta algún dato
+    if(nombre) {
+        infoPersona.nombre = nombre;
     }
+    if(edad) {
+        infoPersona.edad = edad;
+    }
+
+    Persona.findByIdAndUpdate(id, infoPersona, {new:true})
+    .then(personaModificada => {
+        if(personaModificada) {
+            res.json(personaModificada);
+        }
+        res.status(400).end();
+    })
+    .catch(err =>{
+        next(err);
+    })
 });
 
 app.use(handlerNotFound);
+
+//Manejar errores con middleware
+app.use((error, req, res, next) => {
+    console.log(error.name);
+    if(error.name === 'CastError') {
+        res.status(400).send({error: "Invalid id"});
+    } else if(error.name === 'SyntaxError') {
+        res.status(400).send({error: "Syntax error"});
+    }else{
+        res.status(500).send({error: "Internal server error"});
+    }
+    next(error);
+});
 
 app.listen(PORT, () => {
     console.log(`Servidor escuchando en el puerto ${PORT}`);
