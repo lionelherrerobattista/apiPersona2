@@ -3,9 +3,22 @@ const mongoose = require('mongoose');
 const {model, Schema} = mongoose;
 
 const personaSchema = new Schema({
-    nombre:String,
-    edad: Number,
+    nombre:{
+        type: String,
+        required: true
+    },
+    edad: {
+        type: Number,
+        required: true,
+        min: 18,
+        max: 65,
+    },
 });
+
+// const personaSchema = new Schema({
+//     nombre:String,
+//     edad: Number,
+// });
 
 personaSchema.set('toJSON', {
     transform:((document, personaToJSON) => {
