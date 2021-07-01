@@ -1,8 +1,13 @@
 const express = require('express');
 const personasRouter = express.Router();
 const Persona = require('../models/Persona');
+const { verifyToken } = require('../utils/middlewares');
 
-personasRouter.get("/", (req, res, next) => {
+//Para todas las rutas
+//personasRouter.use(verifyToken);
+
+//Pongo el middleware como puerta de acceso a la ruta
+personasRouter.get("/", verifyToken, (req, res, next) => {
     Persona.find({}).then((personas) => {
         res.json(personas);
     })

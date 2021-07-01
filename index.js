@@ -4,6 +4,8 @@ const express = require('express');
 const cors = require('cors');
 const { handlerNotFound, handlerError, logger } = require('./utils/middlewares');
 const personasRouter = require('./routes/personasRouter');
+const usersRouter = require('./routes/usersRouter');
+const loginRouter = require('./routes/loginRouter');
 
 const app = express();
 
@@ -19,6 +21,8 @@ app.get("/", (req, res) => {
 
 //Middleware que consume la ruta
 app.use('/api/personas', personasRouter);
+app.use('/api/users', usersRouter);
+app.use('/api/login', loginRouter);
 
 app.use(handlerNotFound);
 

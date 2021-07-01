@@ -28,6 +28,4 @@ personaSchema.set('toJSON', {
     })
 })
 
-const Persona = model('Persona', personaSchema);
-
-module.exports = Persona;
+module.exports = model('Persona', personaSchema);;
